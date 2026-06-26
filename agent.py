@@ -46,7 +46,11 @@ LLM_TOOLS = [
 ]
 
 
-def run_bash(command: str) -> str:
+def run_bash(command: str, confirm: bool = False) -> str:
+    if confirm:
+        answer = input("   Run command? [y/N]: ").strip().lower()
+        if answer != "y":
+            return "Skipped by user."
     try:
         result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=120)
         out = result.stdout + (f"\nSTDERR:\n{result.stderr}" if result.stderr else "")
@@ -82,7 +86,7 @@ def call_llm(messages):
     return content, tool_calls
 
 
-def agent_loop(user_message: str) -> None:
+def agent_loop(user_message: str, confirm: bool = False) -> None:
     messages: list[dict[str, object]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_message},
@@ -102,16 +106,23 @@ def agent_loop(user_message: str) -> None:
             arguments = json.loads(tool_call["function"]["arguments"])
             tool_call_id = tool_call["id"]
             print(f"{prefix}🔧 Tool: {function}({json.dumps(arguments, ensure_ascii=False)})")
+            if function == "bash" and confirm:
+                arguments["confirm"] = True
             result = call_tool(function, arguments)
-            print(f"   → {result[:500]}{'...' if len(result) > 500 else ''}")
-            messages.append({"role": "assistant", "content": content or None, "tool_calls": [tool_call]})
+            print(f"   → {result}")
+            messages.append(
+                {"role": "assistant", "content": content or None, "tool_calls": [tool_call]}
+            )
             messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": result})
     print(f"\n⚠️  Max turns ({MAX_TURNS}) reached. Stopping.")
 
 
 if __name__ == "__main__":
-    prompt = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else ""
+    args = sys.argv[1:]
+    safe_mode = "--confirm" in args
+    args = [a for a in args if a != "--confirm"]
+    prompt = " ".join(args)
     if not prompt.strip():
         print("No task provided. Exiting.")
         sys.exit(1)
-    agent_loop(prompt)
+    agent_loop(prompt, confirm=safe_mode)

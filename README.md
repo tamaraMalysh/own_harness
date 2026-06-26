@@ -28,12 +28,24 @@ LLM_API_KEY=ollama
 LLM_MODEL=gemma4:latest
 ```
 
-### Ollama quick start
+### Ollama (local)
 
 ```bash
 ollama pull gemma4
 ollama serve
 ```
+
+### OpenAI
+
+```env
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_API_KEY=sk-...
+LLM_MODEL=gpt-4o
+```
+
+### Any OpenAI-compatible provider
+
+The agent works with any provider that exposes an OpenAI-compatible `/v1/chat/completions` endpoint — including Groq, Together AI, OpenRouter, and self-hosted vLLM or LM Studio. Just set the three env vars accordingly.
 
 ## Usage
 
